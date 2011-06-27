@@ -102,7 +102,7 @@ Cookie.prototype.parse = function parse(str) {
 
 Cookie.prototype.matches = function matches(access_info) {
   access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
-  return (
+  return !(
     this.noscript && access_info.script
     || this.secure && !access_info.secure
     || !this.collidesWith(access_info)
@@ -134,85 +134,80 @@ Cookie.prototype.collidesWith = function collidesWith(access_info) {
 }
 
 exports.CookieJar=CookieJar=function CookieJar() {
-  if(this instanceof CookieJar) {
-    var cookies = {} //name: [Cookie]
-    
-    this.setCookie = function setCookie(cookie) {
-      cookie = Cookie(cookie);
-      //Delete the cookie if the set is past the current time
-      var remove = cookie.expiration_date <= Date.now();
-      if(cookie.name in cookies) {
-        var cookies_list = cookies[cookie.name];
-        for(var i=0;i<cookies_list.length;i++) {
-          var collidable_cookie = cookies_list[i];
-          if(collidable_cookie.collidesWith(cookie)) {
-            if(remove) {
-              cookies_list.splice(i,1);
-              if(cookies_list.length===0) {
-                delete cookies[cookie.name]
-              }
-              return false;
-            }
-            else {
-              return cookies_list[i]=cookie;
-            }
-          }
-        }
-        if(remove) {
-          return false;
-        }
-        cookies_list.push(cookie);
-        return cookie;
-      }
-      else if(remove){
-        return false;
-      }
-      else {
-        return cookies[cookie.name]=[cookie];
-      }
-    }
-    //returns a cookie
-    this.getCookie = function getCookie(cookie_name,access_info) {
-      access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
-      var cookies_list = cookies[cookie_name];
-      for(var i=0;i<cookies_list.length;i++) {
-        var cookie = cookies_list[i];
-        if(cookie.expiration_date <= Date.now()) {
-          if(cookies_list.length===0) {
-            delete cookies[cookie.name]
-          }
-          continue;
-        }
-        if(cookie.matches(access_info)) {
-          return cookie;
-        }
-      }
-    }
-    //returns a list of cookies
-    this.getCookies = function getCookies(access_info) {
-      access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
-      var matches=[];
-      for(var cookie_name in cookies) {
-        var cookie=this.getCookie(cookie_name,access_info);
-        if (cookie) {
-          matches.push(cookie);
-        }
-      }
-      matches.toString=function() {return matches.join(":");};
-      matches.toValueString=function() {return matches.map(function(c){return c.toValueString();}).join(';');};
-      return matches;
-    }
-    return this;
-  }
-  return new CookieJar()
+  if(!(this instanceof CookieJar)) return new CookieJar();
+  this.cookies = {};
 }
 
+CookieJar.prototype.setCookie = function setCookie(cookie) {
+  cookie = Cookie(cookie);
+  //Delete the cookie if the set is past the current time
+  var remove = cookie.expiration_date <= Date.now();
+  if(cookie.name in this.cookies) {
+    var cookies_list = this.cookies[cookie.name];
+    for(var i=0;i<cookies_list.length;i++) {
+      var collidable_cookie = cookies_list[i];
+      if(collidable_cookie.collidesWith(cookie)) {
+        if(remove) {
+          cookies_list.splice(i,1);
+          if(cookies_list.length===0) {
+            delete this.cookies[cookie.name]
+          }
+          return false;
+        }
+        else {
+          return cookies_list[i]=cookie;
+        }
+      }
+    }
+    if(remove) {
+      return false;
+    }
+    cookies_list.push(cookie);
+    return cookie;
+  }
+  else if(remove){
+    return false;
+  }
+  else {
+    return this.cookies[cookie.name]=[cookie];
+  }
+}
+
+CookieJar.prototype.getCookie = function (cookie_name,access_info) {
+  access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
+  var cookies_list = this.cookies[cookie_name] || [];
+  for(var i=0;i<cookies_list.length;i++) {
+    var cookie = cookies_list[i];
+    if(cookie.expiration_date <= Date.now()) {
+      if(cookies_list.length===0) {
+        delete this.cookies[cookie.name]
+      }
+      continue;
+    }
+    if(cookie.matches(access_info)) {
+      return cookie;
+    }
+  }
+}
+
+CookieJar.prototype.getCookies = function (access_info) {
+  access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
+  var matches=[];
+  for(var cookie_name in this.cookies) {
+    var cookie=this.getCookie(cookie_name,access_info);
+    if (cookie) {
+      matches.push(cookie);
+    }
+  }
+  matches.toString=function() {return matches.join(":");};
+  matches.toValueString=function() {return matches.map(function(c){return c.toValueString();}).join(';');};
+  return matches;
+}
 
 //returns list of cookies that were set correctly
 CookieJar.prototype.setCookies = function setCookies(cookies) {
-  cookies=Array.isArray(cookies)
-    ?cookies
-    :cookies.split(cookie_str_splitter);
+  if(typeof(cookies) === 'string') cookies = cookies.split(cookie_str_splitter);
+  if(!Array.isArray(cookies)) throw new TypeError('First argument to method must be either an Array or a String');
   var successful=[]
   for(var i=0;i<cookies.length;i++) {
     var cookie = Cookie(cookies[i]);

@@ -1,36 +1,36 @@
 exports.CookieAccessInfo=CookieAccessInfo=function CookieAccessInfo(domain,path,secure,script) {
-    if(this instanceof CookieAccessInfo) {
-      this.domain=domain||undefined;
-      this.path=path||"/";
-      this.secure=!!secure;
-      this.script=!!script;
-      return this;
-    }
-    else {
-        return new CookieAccessInfo(domain,path,secure,script)    
-    }
+  if(this instanceof CookieAccessInfo) {
+    this.domain=domain||undefined;
+    this.path=path||"/";
+    this.secure=!!secure;
+    this.script=!!script;
+    return this;
+  }
+  else {
+    return new CookieAccessInfo(domain,path,secure,script)    
+  }
 }
 
 exports.Cookie=Cookie=function Cookie(cookiestr) {
   if(cookiestr instanceof Cookie) {
     return cookiestr;
   }
-    else {
-        if(this instanceof Cookie) {
-          this.name = null;
-          this.value = null;
-          this.expiration_date = Infinity;
-          this.path = "/";
-          this.domain = null;
-          this.secure = false; //how to define?
-          this.noscript = false; //httponly
-          if(cookiestr) {
-            this.parse(cookiestr)
-          }
-          return this;
-        }
-        return new Cookie(cookiestr)
+  else {
+    if(this instanceof Cookie) {
+      this.name = null;
+      this.value = null;
+      this.expiration_date = Infinity;
+      this.path = "/";
+      this.domain = null;
+      this.secure = false; //how to define?
+      this.noscript = false; //httponly
+      if(cookiestr) {
+        this.parse(cookiestr)
+      }
+      return this;
     }
+    return new Cookie(cookiestr)
+  }
 }
 
 Cookie.prototype.toString = function toString() {
@@ -60,45 +60,44 @@ Cookie.prototype.toValueString = function toValueString() {
 var cookie_str_splitter=/[:](?=\s*[a-zA-Z0-9_\-]+\s*[=])/g
 Cookie.prototype.parse = function parse(str) {
   if(this instanceof Cookie) {
-      var parts=str.split(";")
-      , pair=parts[0].match(/([^=]+)=((?:.|\n)*)/)
-      , key=pair[1]
+    var parts=str.split(";")
+    , pair=parts[0].match(/([^=]+)=((?:.|\n)*)/)
+    , key=pair[1]
+    , value=pair[2];
+    this.name = key;
+    this.value = value;
+    
+    for(var i=1;i<parts.length;i++) {
+      pair=parts[i].match(/([^=]+)(?:=((?:.|\n)*))?/)
+      , key=pair[1].trim().toLowerCase()
       , value=pair[2];
-      this.name = key;
-      this.value = value;
-    
-      for(var i=1;i<parts.length;i++) {
-        pair=parts[i].match(/([^=]+)(?:=((?:.|\n)*))?/)
-        , key=pair[1].trim().toLowerCase()
-        , value=pair[2];
-        switch(key) {
-          case "httponly":
-            this.noscript = true;
-          break;
-          case "expires":
-            this.expiration_date = value
-              ? Number(Date.parse(value))
-              : Infinity;
-          break;
-          case "path":
-            this.path = value
-              ? value.trim()
-              : "";
-          break;
-          case "domain":
-            this.domain = value
-              ? value.trim()
-              : "";
-          break;
-          case "secure":
-            this.secure = true;
-          break
-        }
+      switch(key) {
+        case "httponly":
+          this.noscript = true;
+        break;
+        case "expires":
+          this.expiration_date = value
+            ? Number(Date.parse(value))
+            : Infinity;
+        break;
+        case "path":
+          this.path = value
+            ? value.trim()
+            : "";
+        break;
+        case "domain":
+          this.domain = value
+            ? value.trim()
+            : "";
+        break;
+        case "secure":
+          this.secure = true;
+        break
       }
-    
-      return this;
+    }
+    return this;
   }
-    return new Cookie().parse(str)
+  return new Cookie().parse(str)
 }
 
 Cookie.prototype.matches = function matches(access_info) {
@@ -136,77 +135,76 @@ Cookie.prototype.collidesWith = function collidesWith(access_info) {
 
 exports.CookieJar=CookieJar=function CookieJar() {
   if(this instanceof CookieJar) {
-      var cookies = {} //name: [Cookie]
+    var cookies = {} //name: [Cookie]
     
-      this.setCookie = function setCookie(cookie) {
-        cookie = Cookie(cookie);
-        //Delete the cookie if the set is past the current time
-        var remove = cookie.expiration_date <= Date.now();
-        if(cookie.name in cookies) {
-          var cookies_list = cookies[cookie.name];
-          for(var i=0;i<cookies_list.length;i++) {
-            var collidable_cookie = cookies_list[i];
-            if(collidable_cookie.collidesWith(cookie)) {
-              if(remove) {
-                cookies_list.splice(i,1);
-                if(cookies_list.length===0) {
-                  delete cookies[cookie.name]
-                }
-                return false;
+    this.setCookie = function setCookie(cookie) {
+      cookie = Cookie(cookie);
+      //Delete the cookie if the set is past the current time
+      var remove = cookie.expiration_date <= Date.now();
+      if(cookie.name in cookies) {
+        var cookies_list = cookies[cookie.name];
+        for(var i=0;i<cookies_list.length;i++) {
+          var collidable_cookie = cookies_list[i];
+          if(collidable_cookie.collidesWith(cookie)) {
+            if(remove) {
+              cookies_list.splice(i,1);
+              if(cookies_list.length===0) {
+                delete cookies[cookie.name]
               }
-              else {
-                return cookies_list[i]=cookie;
-              }
+              return false;
+            }
+            else {
+              return cookies_list[i]=cookie;
             }
           }
-          if(remove) {
-            return false;
-          }
-          cookies_list.push(cookie);
-          return cookie;
         }
-        else if(remove){
+        if(remove) {
           return false;
         }
-        else {
-          return cookies[cookie.name]=[cookie];
+        cookies_list.push(cookie);
+        return cookie;
+      }
+      else if(remove){
+        return false;
+      }
+      else {
+        return cookies[cookie.name]=[cookie];
+      }
+    }
+    //returns a cookie
+    this.getCookie = function getCookie(cookie_name,access_info) {
+      access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
+      var cookies_list = cookies[cookie_name];
+      for(var i=0;i<cookies_list.length;i++) {
+        var cookie = cookies_list[i];
+        if(cookie.expiration_date <= Date.now()) {
+          if(cookies_list.length===0) {
+            delete cookies[cookie.name]
+          }
+          continue;
+        }
+        if(cookie.matches(access_info)) {
+          return cookie;
         }
       }
-      //returns a cookie
-      this.getCookie = function getCookie(cookie_name,access_info) {
-        access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
-        var cookies_list = cookies[cookie_name];
-        for(var i=0;i<cookies_list.length;i++) {
-          var cookie = cookies_list[i];
-          if(cookie.expiration_date <= Date.now()) {
-            if(cookies_list.length===0) {
-              delete cookies[cookie.name]
-            }
-            continue;
-          }
-          if(cookie.matches(access_info)) {
-            return cookie;
-          }
+    }
+    //returns a list of cookies
+    this.getCookies = function getCookies(access_info) {
+      access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
+      var matches=[];
+      for(var cookie_name in cookies) {
+        var cookie=this.getCookie(cookie_name,access_info);
+        if (cookie) {
+          matches.push(cookie);
         }
       }
-      //returns a list of cookies
-      this.getCookies = function getCookies(access_info) {
-        access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
-        var matches=[];
-        for(var cookie_name in cookies) {
-          var cookie=this.getCookie(cookie_name,access_info);
-          if (cookie) {
-            matches.push(cookie);
-          }
-        }
-        matches.toString=function toString(){return matches.join(":");}
-            matches.toValueString=function() {return matches.map(function(c){return c.toValueString();}).join(';');}
-        return matches;
-      }
-    
-      return this;
+      matches.toString=function() {return matches.join(":");};
+      matches.toValueString=function() {return matches.map(function(c){return c.toValueString();}).join(';');};
+      return matches;
+    }
+    return this;
   }
-    return new CookieJar()
+  return new CookieJar()
 }
 
 

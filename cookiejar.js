@@ -103,12 +103,11 @@ Cookie.prototype.parse = function parse(str) {
 
 Cookie.prototype.matches = function matches(access_info) {
   access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
-	if(this.noscript && access_info.script
-	|| this.secure && !access_info.secure
-	|| !this.collidesWith(access_info)) {
-		return false
-	}
-	return true;
+  return (
+    this.noscript && access_info.script
+    || this.secure && !access_info.secure
+    || !this.collidesWith(access_info)
+  );
 }
 
 Cookie.prototype.collidesWith = function collidesWith(access_info) {

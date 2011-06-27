@@ -102,6 +102,7 @@ Cookie.prototype.parse = function parse(str) {
 }
 
 Cookie.prototype.matches = function matches(access_info) {
+  access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
 	if(this.noscript && access_info.script
 	|| this.secure && !access_info.secure
 	|| !this.collidesWith(access_info)) {
@@ -111,6 +112,7 @@ Cookie.prototype.matches = function matches(access_info) {
 }
 
 Cookie.prototype.collidesWith = function collidesWith(access_info) {
+  access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
 	if((this.path && !access_info.path) || (this.domain && !access_info.domain)) {
 		return false
 	}
@@ -173,6 +175,7 @@ exports.CookieJar=CookieJar=function CookieJar() {
     	}
     	//returns a cookie
     	this.getCookie = function getCookie(cookie_name,access_info) {
+    	  access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
     		var cookies_list = cookies[cookie_name];
     		for(var i=0;i<cookies_list.length;i++) {
     			var cookie = cookies_list[i];
@@ -189,6 +192,7 @@ exports.CookieJar=CookieJar=function CookieJar() {
     	}
     	//returns a list of cookies
     	this.getCookies = function getCookies(access_info) {
+    	  access_info = access_info instanceof CookieAccessInfo ? access_info : new CookieAccessInfo;
     		var matches=[];
     		for(var cookie_name in cookies) {
     			var cookie=this.getCookie(cookie_name,access_info);
